@@ -122,12 +122,15 @@ API em `http://localhost:8080`. Os dados somem ao reiniciar.
 ### 2. Backend — com Supabase
 
 1. Crie um projeto em [supabase.com](https://supabase.com).
-2. Em **Connect → Session pooler**, copie host, usuário (`postgres.<ref>`) e senha.
-3. Exporte as variáveis (veja `backend/.env.example`) e rode:
+2. Copie `backend/.env.example` para `backend/.env` (este arquivo é ignorado pelo git).
+3. No Supabase, clique em **Connect → Session pooler** e preencha no `.env` o host, o usuário (`postgres.<id-do-projeto>`) e a senha do banco.
+4. Rode normalmente — o backend lê o `.env` sozinho e ativa o perfil `supabase`:
 
 ```bash
-cd backend && SPRING_PROFILES_ACTIVE=supabase SUPABASE_DB_URL='jdbc:postgresql://<host>:5432/postgres?sslmode=require' SUPABASE_DB_USER='postgres.<ref>' SUPABASE_DB_PASSWORD='<senha>' ./mvnw spring-boot:run
+cd backend && ./mvnw spring-boot:run
 ```
+
+Sem o `backend/.env`, o backend volta ao modo dev (H2). Em deploy, use variáveis de ambiente em vez do arquivo. Os testes automáticos sempre usam H2, mesmo com `.env` presente.
 
 O Flyway cria o schema `loja` e as tabelas na primeira execução. Use o **Session pooler (5432)** ou conexão direta — o *Transaction pooler (6543)* não é compatível com prepared statements do JDBC sem ajustes.
 

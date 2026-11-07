@@ -4,6 +4,9 @@ server:
 spring:
   application:
     name: gestao-loja-api
+  config:
+    # lê backend/.env (se existir) — arquivo local, ignorado pelo git
+    import: optional:file:.env[.properties]
   profiles:
     # "dev" = H2 em memória (roda sem Supabase). Em produção use SPRING_PROFILES_ACTIVE=supabase
     active: ${SPRING_PROFILES_ACTIVE:dev}
