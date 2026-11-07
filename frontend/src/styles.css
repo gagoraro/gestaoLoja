@@ -180,3 +180,41 @@ tr.cancelada td:last-child { text-decoration: none; }
   .conteudo { padding: 1.25rem 1rem 3rem; }
   .topo .secao-atual { display: none; }
 }
+
+/* ---------- página inicial: botões quadrados que "afundam" no hover ---------- */
+.atalhos { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 1.25rem; }
+.atalho {
+  aspect-ratio: 1 / 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .5rem;
+  padding: 1.25rem; text-align: center; text-decoration: none; color: var(--tinta);
+  background: var(--superficie); border: 1px solid var(--borda); border-radius: 22px;
+  /* relevo: borda "de baixo" mais grossa + sombra externa = botão saltado */
+  border-bottom-width: 6px; border-bottom-color: color-mix(in srgb, var(--borda) 60%, var(--tinta) 15%);
+  box-shadow: var(--sombra);
+  transform: translateY(0);
+  transition: transform .14s ease, box-shadow .14s ease, border-bottom-width .14s ease, background .14s ease;
+}
+.atalho:hover, .atalho:focus-visible {
+  /* afunda: desce, perde o relevo e ganha sombra interna */
+  transform: translateY(5px);
+  border-bottom-width: 1px;
+  background: var(--painel);
+  box-shadow: inset 0 4px 10px rgba(40, 40, 20, .14), inset 0 1px 2px rgba(40, 40, 20, .1);
+  outline: none;
+}
+.atalho:active { transform: translateY(6px) scale(.98); }
+.atalho-icone {
+  width: 64px; height: 64px; border-radius: 18px; display: grid; place-items: center;
+  background: var(--oliva-claro); color: var(--oliva-texto); transition: background .14s, color .14s;
+}
+.atalho-icone svg { width: 32px; height: 32px; }
+.atalho:hover .atalho-icone, .atalho:focus-visible .atalho-icone { background: var(--oliva); color: #fff; }
+.atalho-rotulo { font-family: var(--serif); font-size: 1.45rem; font-weight: 500; }
+.atalho-desc { font-size: .85rem; color: var(--suave); }
+@media (max-width: 480px) {
+  .atalhos { grid-template-columns: repeat(2, 1fr); gap: .75rem; }
+  .atalho { border-radius: 18px; padding: .75rem; }
+  .atalho-icone { width: 48px; height: 48px; }
+  .atalho-rotulo { font-size: 1.15rem; }
+  .atalho-desc { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .atalho, .atalho-icone { transition: none; } }

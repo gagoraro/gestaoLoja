@@ -12,3 +12,6 @@ export const IconeOrcamento = () => (
 export const IconeCaixa = () => (
   <svg {...base}><rect x="3" y="10" width="18" height="11" rx="2" /><path d="M7 10V5h10v5M7 15h.01M12 15h.01M17 15h.01M7 18h10" /></svg>
 );
+export const IconeInicio = () => (
+  <svg {...base}><path d="m3 11 9-8 9 8" /><path d="M5 10v10h5v-6h4v6h5V10" /></svg>
+);

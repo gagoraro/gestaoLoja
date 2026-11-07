@@ -1,8 +1,9 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import { useAuth } from './auth/AuthContext';
 import Layout from './components/Layout';
 import CaixaPage from './pages/CaixaPage';
 import EstoquePage from './pages/EstoquePage';
+import InicioPage from './pages/InicioPage';
 import LoginPage from './pages/LoginPage';
 import NovoOrcamentoPage from './pages/NovoOrcamentoPage';
 import OrcamentosPage from './pages/OrcamentosPage';
@@ -17,7 +18,7 @@ export default function App() {
   return (
     <Layout>
       <Routes>
-        <Route path="/" element={<Navigate to="/caixa" replace />} />
+        <Route path="/" element={<InicioPage />} />
         <Route path="/caixa" element={<CaixaPage />} />
         <Route path="/produtos" element={<ProdutosPage />} />
         <Route path="/estoque" element={<EstoquePage />} />
