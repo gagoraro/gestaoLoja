@@ -5,10 +5,13 @@ import com.lowagie.text.*;
 import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.time.ZoneId;
@@ -22,12 +25,24 @@ public class OrcamentoPdfService {
     private static final Locale PT_BR = Locale.forLanguageTag("pt-BR");
     private static final DateTimeFormatter DATA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final ZoneId FUSO = ZoneId.of("America/Sao_Paulo");
-    private static final Color CINZA = new Color(240, 240, 240);
+    // cores da identidade visual do sistema
+    private static final Color CINZA = new Color(240, 239, 231);
+    private static final Color OLIVA = new Color(67, 82, 38);
 
     private final AppProperties props;
+    private final byte[] logo;
 
     public OrcamentoPdfService(AppProperties props) {
         this.props = props;
+        this.logo = carregarLogo();
+    }
+
+    private static byte[] carregarLogo() {
+        try (InputStream in = new ClassPathResource("logo-empresa.png").getInputStream()) {
+            return in.readAllBytes();
+        } catch (IOException e) {
+            return null; // sem logo, o PDF sai só com o nome da loja
+        }
     }
 
     public byte[] gerar(Orcamento o) {
@@ -41,10 +56,32 @@ public class OrcamentoPdfService {
         Font negrito = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10);
         Font normal = FontFactory.getFont(FontFactory.HELVETICA, 10);
 
-        doc.add(new Paragraph(props.loja().nome(), titulo));
-        doc.add(new Paragraph("Orçamento nº " + o.getId(), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 13)));
-        doc.add(new Paragraph("Emitido em " + o.getCriadoEm().atZoneSameInstant(FUSO).format(DATA)
+        // Cabeçalho: logo à esquerda, dados do orçamento à direita
+        PdfPTable cabecalho = new PdfPTable(new float[]{1.3f, 4f});
+        cabecalho.setWidthPercentage(100);
+        PdfPCell celLogo = new PdfPCell();
+        celLogo.setBorder(Rectangle.NO_BORDER);
+        if (logo != null) {
+            try {
+                Image img = Image.getInstance(logo);
+                img.scaleToFit(95, 95);
+                celLogo.addElement(img);
+            } catch (Exception e) {
+                celLogo.addElement(new Phrase(""));
+            }
+        }
+        cabecalho.addCell(celLogo);
+
+        PdfPCell celInfo = new PdfPCell();
+        celInfo.setBorder(Rectangle.NO_BORDER);
+        celInfo.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        celInfo.addElement(new Paragraph(props.loja().nome(), titulo));
+        celInfo.addElement(new Paragraph("Orçamento nº " + o.getId(),
+                FontFactory.getFont(FontFactory.HELVETICA_BOLD, 13, OLIVA)));
+        celInfo.addElement(new Paragraph("Emitido em " + o.getCriadoEm().atZoneSameInstant(FUSO).format(DATA)
                 + (o.getValidade() != null ? "  •  Válido até " + o.getValidade().format(DATA) : ""), normal));
+        cabecalho.addCell(celInfo);
+        doc.add(cabecalho);
         doc.add(Chunk.NEWLINE);
 
         doc.add(new Paragraph("Cliente: " + o.getClienteNome(), negrito));
@@ -68,12 +105,13 @@ public class OrcamentoPdfService {
             tabela.addCell(celula(moeda.format(i.getPrecoUnitario()), normal, Element.ALIGN_RIGHT));
             tabela.addCell(celula(moeda.format(i.getSubtotal()), normal, Element.ALIGN_RIGHT));
         }
-        PdfPCell rotuloTotal = celula("TOTAL", negrito, Element.ALIGN_RIGHT);
+        Font negritoBranco = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, Color.WHITE);
+        PdfPCell rotuloTotal = celula("TOTAL", negritoBranco, Element.ALIGN_RIGHT);
         rotuloTotal.setColspan(3);
-        rotuloTotal.setBackgroundColor(CINZA);
+        rotuloTotal.setBackgroundColor(OLIVA);
         tabela.addCell(rotuloTotal);
-        PdfPCell valorTotal = celula(moeda.format(nz(o.getValorTotal())), negrito, Element.ALIGN_RIGHT);
-        valorTotal.setBackgroundColor(CINZA);
+        PdfPCell valorTotal = celula(moeda.format(nz(o.getValorTotal())), negritoBranco, Element.ALIGN_RIGHT);
+        valorTotal.setBackgroundColor(OLIVA);
         tabela.addCell(valorTotal);
         doc.add(tabela);
 

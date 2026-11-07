@@ -17,16 +17,28 @@ spring:
     properties:
       hibernate:
         default_schema: loja
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # chave pública do Supabase Auth (nenhum segredo necessário)
+          jwk-set-uri: ${SUPABASE_URL:https://exemplo.supabase.co}/auth/v1/.well-known/jwks.json
+          issuer-uri: ${SUPABASE_URL:https://exemplo.supabase.co}/auth/v1
+          audiences: authenticated
+          jws-algorithms: ES256,RS256
   flyway:
     schemas: loja
     default-schema: loja
     create-schemas: true
 
 app:
+  auth:
+    # false só no perfil dev (H2), para rodar sem Supabase
+    enabled: true
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
   loja:
-    nome: ${LOJA_NOME:Minha Loja}
+    nome: ${LOJA_NOME:A Vitoriosa de Angra}
     validade-orcamento-dias: 7
 
 ---
@@ -41,6 +53,9 @@ spring:
   h2:
     console:
       enabled: true
+app:
+  auth:
+    enabled: ${APP_AUTH_ENABLED:false}
 
 ---
 spring:

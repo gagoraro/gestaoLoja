@@ -31,31 +31,39 @@ export default function OrcamentosPage() {
   return (
     <section>
       <div className="cabecalho">
-        <h1>Orçamentos</h1>
+        <div className="cabecalho-marca">
+          <img src="/logo.png" alt="Logo A Vitoriosa de Angra" />
+          <div>
+            <p className="eyebrow">A Vitoriosa de Angra</p>
+            <h1>Orçamentos</h1>
+          </div>
+        </div>
         <Link to="/orcamentos/novo" className="botao">+ Novo orçamento</Link>
       </div>
       {erro && <p className="erro">{erro}</p>}
-      {carregando ? <p>Carregando…</p> : orcamentos.length === 0 ? (
-        <p className="vazio">Nenhum orçamento criado.</p>
+      {carregando ? <p className="vazio">Carregando…</p> : orcamentos.length === 0 ? (
+        <div className="cartao vazio">Nenhum orçamento criado.</div>
       ) : (
-        <table className="tabela">
-          <thead><tr><th>Nº</th><th>Cliente</th><th>Emissão</th><th>Validade</th><th className="num">Total</th><th></th></tr></thead>
-          <tbody>
-            {orcamentos.map((o) => (
-              <tr key={o.id}>
-                <td className="mono">{o.id}</td>
-                <td>{o.clienteNome}</td>
-                <td>{dataBr(o.criadoEm)}</td>
-                <td>{dataBr(o.validade)}</td>
-                <td className="num">{brl(o.valorTotal)}</td>
-                <td className="acoes-linha">
-                  <button className="btn-sec" onClick={() => baixar(o.id)}>Baixar PDF</button>
-                  <button className="btn-perigo" onClick={() => remover(o)}>Excluir</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="tabela-wrap">
+          <table className="tabela">
+            <thead><tr><th>Nº</th><th>Cliente</th><th>Emissão</th><th>Validade</th><th className="num">Total</th><th /></tr></thead>
+            <tbody>
+              {orcamentos.map((o) => (
+                <tr key={o.id}>
+                  <td className="mono">{o.id}</td>
+                  <td>{o.clienteNome}</td>
+                  <td>{dataBr(o.criadoEm)}</td>
+                  <td>{dataBr(o.validade)}</td>
+                  <td className="num">{brl(o.valorTotal)}</td>
+                  <td className="acoes-linha">
+                    <button className="btn-sec btn-peq" onClick={() => baixar(o.id)}>Baixar PDF</button>
+                    <button className="btn-perigo btn-peq" onClick={() => remover(o)}>Excluir</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </section>
   );

@@ -1,11 +1,12 @@
-# Gestão Loja — MVP
+# Gestão Loja — A Vitoriosa de Angra
 
-Sistema de gestão para loja com **cadastro de produtos**, **controle de estoque** (entradas/saídas com histórico) e **orçamentos com geração de PDF**.
+Sistema de gestão para loja com **login**, **caixa do dia** (abrir, registrar vendas, fechar com conferência), **cadastro de produtos**, **controle de estoque** (entradas/saídas com histórico) e **orçamentos com PDF e logo da empresa**.
 
 | Camada    | Tecnologia                                                        |
 |-----------|-------------------------------------------------------------------|
 | Frontend  | React 18 + TypeScript + Vite + React Router                       |
-| Backend   | Java 21 + Spring Boot 3.3 (Web, Data JPA, Validation) + OpenPDF   |
+| Backend   | Java 21 + Spring Boot 3.3 (Web, Data JPA, Validation, Security) + OpenPDF |
+| Login     | Supabase Auth (front) + validação do JWT no Spring (chave pública) |
 | Banco     | Supabase (PostgreSQL) — migrations versionadas com Flyway         |
 
 ---
@@ -29,7 +30,9 @@ flowchart LR
 5. **Orçamento não baixa estoque** (é proposta, não venda). O front só avisa quando a quantidade passa do saldo.
 6. **PDF gerado no backend** (OpenPDF): layout idêntico em qualquer navegador e pronto para ser enviado por e-mail/WhatsApp no futuro.
 7. **Exclusão lógica de produtos** (`ativo=false`) para preservar histórico de estoque e orçamentos.
-8. **Organização por feature** no backend (`produto/`, `estoque/`, `orcamento/`), cada uma com entidade → repository → service → controller → DTOs.
+8. **Login com Supabase Auth.** O front faz o login direto no Supabase e manda o token em cada chamada. O Spring valida assinatura (chave pública ES256 do projeto, via JWKS), emissor, audiência e validade — o backend não guarda nenhum segredo de autenticação.
+9. **Caixa do dia.** Só existe um caixa aberto por vez (garantido por `UNIQUE` no banco). Cada venda baixa o estoque na mesma transação — se faltar estoque de qualquer item, nada é gravado. Cancelar uma venda devolve os itens ao estoque. No fechamento, o sistema compara o dinheiro contado com o esperado (troco inicial + vendas em dinheiro).
+10. **Organização por feature** no backend (`produto/`, `estoque/`, `orcamento/`), cada uma com entidade → repository → service → controller → DTOs.
 
 ### Estrutura
 
@@ -41,17 +44,20 @@ gestaoLoja/
 │       ├── java/br/com/gestaoloja/
 │       │   ├── produto/              CRUD de produtos
 │       │   ├── estoque/              movimentações (entrada/saída) + histórico
+│       │   ├── caixa/                caixa do dia + vendas
 │       │   ├── orcamento/            orçamentos + OrcamentoPdfService
 │       │   ├── common/               exceções + handler de erros (RFC 7807)
-│       │   └── config/               CORS, propriedades
+│       │   └── config/               segurança (JWT), CORS, propriedades
 │       └── resources/
 │           ├── application.yml       perfis "dev" (H2) e "supabase"
-│           └── db/migration/V1__schema_inicial.sql
+│           ├── logo-empresa.png      logo usado no PDF
+│           └── db/migration/         V1 (produtos/orçamentos), V2 (caixa/vendas)
 └── frontend/                         React + Vite
     └── src/
-        ├── api/                      client fetch, tipos, formatação BRL
-        ├── components/               Modal, ProdutoForm, EstoqueModal
-        └── pages/                    Produtos, Orçamentos, NovoOrçamento
+        ├── auth/                     cliente Supabase + contexto de login
+        ├── api/                      client fetch (envia o token), tipos, formatação BRL
+        ├── components/               Layout (menu hambúrguer), ItensEditor, Modal, ProdutoForm, EstoqueModal
+        └── pages/                    Login, Caixa, Produtos, Estoque, Orçamentos, NovoOrçamento
 ```
 
 ### Modelo de dados
@@ -101,7 +107,15 @@ erDiagram
 | GET    | `/api/orcamentos/{id}`                 | Detalhe com itens                           |
 | POST   | `/api/orcamentos`                      | `{clienteNome, clienteContato?, observacoes?, itens:[{produtoId, quantidade}]}` |
 | DELETE | `/api/orcamentos/{id}`                 | Exclui                                      |
-| GET    | `/api/orcamentos/{id}/pdf`             | Baixa o PDF                                 |
+| GET    | `/api/orcamentos/{id}/pdf`             | Baixa o PDF (com logo)                      |
+| GET    | `/api/caixa/atual`                     | Caixa aberto com vendas e totais (204 se fechado) |
+| POST   | `/api/caixa/abrir`                     | `{valorAbertura}` — troco inicial           |
+| POST   | `/api/caixa/vendas`                    | `{formaPagamento, itens:[{produtoId, quantidade}], observacao?}` — baixa estoque |
+| POST   | `/api/caixa/vendas/{id}/cancelar`      | Cancela e devolve ao estoque                |
+| POST   | `/api/caixa/{id}/fechar`               | `{valorContado?, observacao?}`              |
+| GET    | `/api/caixa` · `/api/caixa/{id}`       | Histórico de caixas · detalhe               |
+
+Formas de pagamento: `DINHEIRO`, `PIX`, `CARTAO_DEBITO`, `CARTAO_CREDITO`. Todas as rotas `/api/**` exigem login (`Authorization: Bearer <token>`).
 
 Erros seguem RFC 7807 (`{status, detail, campos?}`): 400 validação, 404 não encontrado, 422 regra de negócio (ex.: estoque insuficiente, SKU duplicado), 409 integridade.
 
@@ -134,7 +148,16 @@ Sem o `backend/.env`, o backend volta ao modo dev (H2). Em deploy, use variávei
 
 O Flyway cria o schema `loja` e as tabelas na primeira execução. Use o **Session pooler (5432)** ou conexão direta — o *Transaction pooler (6543)* não é compatível com prepared statements do JDBC sem ajustes.
 
-### 3. Frontend
+### 3. Login (Supabase Auth)
+
+1. **Supabase → Authentication → Sign In / Providers**: desligue **"Allow new users to sign up"**. Isso é importante: a chave pública do front permite cadastro aberto se essa opção ficar ligada.
+2. **Authentication → Users → Add user → Create new user**: crie o e-mail e a senha de cada pessoa que vai usar o sistema (marque "Auto Confirm User").
+3. Copie `frontend/.env.example` para `frontend/.env` e preencha `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` (Project Settings → API Keys → chave **anon/publishable**, nunca a `service_role`/secret).
+4. No `backend/.env`, `SUPABASE_URL` deve ser a URL do mesmo projeto.
+
+Sem `VITE_SUPABASE_ANON_KEY`, o front roda em **modo local sem login** (só faz sentido com o backend no perfil `dev`).
+
+### 4. Frontend
 
 ```bash
 cd frontend && npm install && npm run dev
@@ -148,14 +171,15 @@ Abra `http://localhost:5173`. Em dev, o Vite faz proxy de `/api` para `http://lo
 cd backend && ./mvnw test
 ```
 
-O teste de integração cobre: cadastro, SKU duplicado, entrada/saída, bloqueio de saldo negativo, orçamento com total calculado no servidor, geração do PDF e exclusão lógica.
+Os testes cobrem: cadastro e busca, SKU duplicado, entrada/saída, bloqueio de saldo negativo, orçamento e PDF, exclusão lógica, caixa completo (abrir, vender, estoque insuficiente, cancelar, fechar com diferença) e exigência de login (401 sem token).
 
 ---
 
 ## Próximos passos sugeridos
 
-- **Autenticação**: Supabase Auth no front + validação do JWT no Spring (`spring-boot-starter-oauth2-resource-server`).
-- **Converter orçamento em venda** → baixa automática de estoque.
+- Perfis de usuário (dono × vendedor) e permissões por tela.
+- **Converter orçamento em venda** no caixa.
+- Relatórios de vendas por período e produto mais vendido.
 - Desconto por item/orçamento, dados da loja (CNPJ, logo) no PDF, envio por e-mail/WhatsApp.
 - Paginação nas listagens, alerta de estoque mínimo, relatórios.
 - Deploy: backend em Render/Railway/Fly (Dockerfile), frontend em Vercel.

@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api/client';
 import { brl } from '../api/format';
 import { Produto, ProdutoInput } from '../api/types';
-import EstoqueModal from '../components/EstoqueModal';
 import Modal from '../components/Modal';
 import ProdutoForm from '../components/ProdutoForm';
 
@@ -12,7 +11,6 @@ export default function ProdutosPage() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
   const [editando, setEditando] = useState<Produto | 'novo' | null>(null);
-  const [estoque, setEstoque] = useState<Produto | null>(null);
 
   const carregar = useCallback(async () => {
     try {
@@ -27,7 +25,7 @@ export default function ProdutosPage() {
   }, [busca]);
 
   useEffect(() => {
-    const t = setTimeout(carregar, 250); // debounce da busca
+    const t = setTimeout(carregar, 250);
     return () => clearTimeout(t);
   }, [carregar]);
 
@@ -40,46 +38,48 @@ export default function ProdutosPage() {
 
   async function remover(p: Produto) {
     if (!confirm(`Remover o produto "${p.nome}"?`)) return;
-    try {
-      await api.del(`/api/produtos/${p.id}`);
-      carregar();
-    } catch (e) {
-      alert((e as Error).message);
-    }
+    try { await api.del(`/api/produtos/${p.id}`); carregar(); }
+    catch (e) { alert((e as Error).message); }
   }
 
   return (
     <section>
       <div className="cabecalho">
-        <h1>Produtos & Estoque</h1>
+        <div>
+          <p className="eyebrow">Cadastro</p>
+          <h1>Produtos</h1>
+          <p className="sub">{produtos.length} {produtos.length === 1 ? 'produto cadastrado' : 'produtos cadastrados'}</p>
+        </div>
         <button onClick={() => setEditando('novo')}>+ Novo produto</button>
       </div>
-      <input className="busca" placeholder="Buscar por nome ou SKU…" value={busca} onChange={(e) => setBusca(e.target.value)} />
+      <input className="busca" type="search" placeholder="Buscar por nome ou código…" value={busca} onChange={(e) => setBusca(e.target.value)} />
 
       {erro && <p className="erro">{erro}</p>}
-      {carregando ? <p>Carregando…</p> : produtos.length === 0 ? (
-        <p className="vazio">Nenhum produto cadastrado.</p>
+      {carregando ? <p className="vazio">Carregando…</p> : produtos.length === 0 ? (
+        <div className="cartao vazio">
+          {busca ? 'Nenhum produto encontrado.' : 'Nenhum produto cadastrado ainda.'}
+          {!busca && <div style={{ marginTop: '1rem' }}><button onClick={() => setEditando('novo')}>Cadastrar o primeiro produto</button></div>}
+        </div>
       ) : (
-        <table className="tabela">
-          <thead>
-            <tr><th>SKU</th><th>Produto</th><th className="num">Preço</th><th className="num">Estoque</th><th></th></tr>
-          </thead>
-          <tbody>
-            {produtos.map((p) => (
-              <tr key={p.id}>
-                <td className="mono">{p.sku}</td>
-                <td>{p.nome}{p.descricao && <div className="sub">{p.descricao}</div>}</td>
-                <td className="num">{brl(p.precoUnitario)}</td>
-                <td className={`num ${p.quantidadeEstoque === 0 ? 'zerado' : ''}`}>{p.quantidadeEstoque}</td>
-                <td className="acoes-linha">
-                  <button className="btn-sec" onClick={() => setEstoque(p)}>Estoque</button>
-                  <button className="btn-sec" onClick={() => setEditando(p)}>Editar</button>
-                  <button className="btn-perigo" onClick={() => remover(p)}>Remover</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="tabela-wrap">
+          <table className="tabela">
+            <thead><tr><th>Código</th><th>Produto</th><th className="num">Preço</th><th className="num">Estoque</th><th /></tr></thead>
+            <tbody>
+              {produtos.map((p) => (
+                <tr key={p.id}>
+                  <td className="mono">{p.sku}</td>
+                  <td>{p.nome}{p.descricao && <div className="sub">{p.descricao}</div>}</td>
+                  <td className="num">{brl(p.precoUnitario)}</td>
+                  <td className="num">{p.quantidadeEstoque}</td>
+                  <td className="acoes-linha">
+                    <button className="btn-sec btn-peq" onClick={() => setEditando(p)}>Editar</button>
+                    <button className="btn-perigo btn-peq" onClick={() => remover(p)}>Remover</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {editando && (
@@ -87,7 +87,6 @@ export default function ProdutosPage() {
           <ProdutoForm produto={editando === 'novo' ? undefined : editando} onSalvar={salvar} onCancelar={() => setEditando(null)} />
         </Modal>
       )}
-      {estoque && <EstoqueModal produto={estoque} onClose={() => setEstoque(null)} onAlterado={carregar} />}
     </section>
   );
 }

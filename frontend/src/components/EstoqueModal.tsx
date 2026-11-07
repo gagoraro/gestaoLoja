@@ -64,20 +64,20 @@ export default function EstoqueModal({ produto, onClose, onAlterado }: Props) {
 
       <h3>Últimas movimentações</h3>
       {historico.length === 0 ? <p className="vazio">Nenhuma movimentação.</p> : (
-        <table className="tabela compacta">
+        <div className="tabela-wrap"><table className="tabela compacta">
           <thead><tr><th>Data</th><th>Tipo</th><th className="num">Qtd</th><th className="num">Saldo</th><th>Motivo</th></tr></thead>
           <tbody>
             {historico.map((m) => (
               <tr key={m.id}>
                 <td>{dataBr(m.criadoEm)}</td>
-                <td><span className={`tag ${m.tipo === 'ENTRADA' ? 'entrada' : 'saida'}`}>{m.tipo === 'ENTRADA' ? 'Entrada' : 'Saída'}</span></td>
+                <td><span className={`tag ${m.tipo === 'ENTRADA' ? 'ok' : 'perigo'}`}>{m.tipo === 'ENTRADA' ? 'Entrada' : 'Saída'}</span></td>
                 <td className="num">{m.quantidade}</td>
                 <td className="num">{m.saldoApos}</td>
                 <td>{m.motivo ?? '—'}</td>
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
     </Modal>
   );
