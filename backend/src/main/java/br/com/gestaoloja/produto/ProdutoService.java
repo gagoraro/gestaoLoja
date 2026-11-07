@@ -23,7 +23,9 @@ public class ProdutoService {
 
     @Transactional(readOnly = true)
     public List<Produto> listar(String busca) {
-        return repository.buscarAtivos(busca == null || busca.isBlank() ? null : busca.trim());
+        return busca == null || busca.isBlank()
+                ? repository.findByAtivoTrueOrderByNome()
+                : repository.buscarAtivos(busca.trim());
     }
 
     @Transactional(readOnly = true)

@@ -11,12 +11,14 @@ import java.util.Optional;
 
 public interface ProdutoRepository extends JpaRepository<Produto, Long> {
 
+    List<Produto> findByAtivoTrueOrderByNome();
+
+    // obs.: não usar ":param is null" aqui — no Postgres um null sem tipo vira bytea e quebra o lower()
     @Query("""
             select p from Produto p
             where p.ativo = true
-              and (:busca is null
-                   or lower(p.nome) like lower(concat('%', :busca, '%'))
-                   or lower(p.sku)  like lower(concat('%', :busca, '%')))
+              and (lower(p.nome) like lower(concat('%', :busca, '%'))
+                   or lower(p.sku) like lower(concat('%', :busca, '%')))
             order by p.nome
             """)
     List<Produto> buscarAtivos(@Param("busca") String busca);

@@ -33,6 +33,11 @@ class FluxoCompletoTest {
         long id = p.get("id").asLong();
         assertThat(p.get("quantidadeEstoque").asInt()).isEqualTo(10);
 
+        // listagem sem filtro e busca por texto
+        mvc.perform(get("/api/produtos")).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1));
+        mvc.perform(get("/api/produtos?busca=camis")).andExpect(jsonPath("$.length()").value(1));
+        mvc.perform(get("/api/produtos?busca=xyz")).andExpect(jsonPath("$.length()").value(0));
+
         // SKU duplicado
         enviar("/api/produtos", "{\"sku\":\"cam-01\",\"nome\":\"X\",\"precoUnitario\":1}", 422);
 
