@@ -1,0 +1,54 @@
+server:
+  port: ${PORT:8080}
+
+spring:
+  application:
+    name: gestao-loja-api
+  profiles:
+    # "dev" = H2 em memória (roda sem Supabase). Em produção use SPRING_PROFILES_ACTIVE=supabase
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate          # o schema é dono do Flyway, não do Hibernate
+    properties:
+      hibernate:
+        default_schema: loja
+  flyway:
+    schemas: loja
+    default-schema: loja
+    create-schemas: true
+
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  loja:
+    nome: ${LOJA_NOME:Minha Loja}
+    validade-orcamento-dias: 7
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    url: jdbc:h2:mem:loja;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    username: sa
+    password:
+  h2:
+    console:
+      enabled: true
+
+---
+spring:
+  config:
+    activate:
+      on-profile: supabase
+  datasource:
+    # Supabase > Project Settings > Database > Connection string (Session pooler, porta 5432)
+    # Valores vêm de variáveis de ambiente — nunca coloque credenciais neste arquivo.
+    url: ${SUPABASE_DB_URL}
+    username: ${SUPABASE_DB_USER}
+    password: ${SUPABASE_DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 5

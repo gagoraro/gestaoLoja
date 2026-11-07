@@ -1,0 +1,16 @@
+# backend
+backend/target/
+*.class
+# frontend
+frontend/node_modules/
+frontend/dist/
+# env / segredos
+.env
+*.env.local
+# IDE / SO
+.idea/
+.vscode/
+.DS_Store
+
+# config local do Claude (caminhos desta máquina)
+.claude/
