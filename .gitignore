@@ -15,3 +15,6 @@ frontend/dist/
 # config local do Claude (caminhos desta máquina)
 .claude/
 frontend/*.tsbuildinfo
+
+# documentação local, fora do GitHub
+README.md
