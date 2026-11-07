@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class ProdutoService {
@@ -37,14 +38,19 @@ public class ProdutoService {
 
     @Transactional
     public Produto criar(ProdutoRequest req) {
-        String sku = req.sku().trim();
-        if (repository.existsBySkuIgnoreCase(sku)) {
+        String sku = limpar(req.sku());
+        if (sku != null && repository.existsBySkuIgnoreCase(sku)) {
             throw new RegraNegocioException("Já existe um produto com o SKU " + sku);
         }
         Produto p = new Produto();
         aplicar(p, req);
+        // sem SKU: grava com um código provisório único e troca pelo definitivo baseado no id
+        p.setSku(sku != null ? sku : "TMP-" + UUID.randomUUID());
         p.setQuantidadeEstoque(0);
-        p = repository.save(p);
+        p = repository.saveAndFlush(p);
+        if (sku == null) {
+            p.setSku(gerarSku(p.getId()));
+        }
 
         int inicial = req.estoqueInicial() == null ? 0 : req.estoqueInicial();
         if (inicial > 0) {
@@ -57,8 +63,12 @@ public class ProdutoService {
     @Transactional
     public Produto atualizar(Long id, ProdutoRequest req) {
         Produto p = buscar(id);
-        if (repository.existsBySkuIgnoreCaseAndIdNot(req.sku().trim(), id)) {
-            throw new RegraNegocioException("Já existe um produto com o SKU " + req.sku().trim());
+        String sku = limpar(req.sku());
+        if (sku != null) { // vazio na edição = mantém o SKU atual
+            if (repository.existsBySkuIgnoreCaseAndIdNot(sku, id)) {
+                throw new RegraNegocioException("Já existe um produto com o SKU " + sku);
+            }
+            p.setSku(sku);
         }
         aplicar(p, req);
         return p;
@@ -70,8 +80,21 @@ public class ProdutoService {
         buscar(id).setAtivo(false);
     }
 
+    /** P + id com 5 dígitos; se alguém já usou esse código manualmente, acrescenta um sufixo. */
+    private String gerarSku(Long id) {
+        String base = String.format("P%05d", id);
+        String sku = base;
+        for (int i = 2; repository.existsBySkuIgnoreCaseAndIdNot(sku, id); i++) {
+            sku = base + "-" + i;
+        }
+        return sku;
+    }
+
+    private static String limpar(String sku) {
+        return sku == null || sku.isBlank() ? null : sku.trim();
+    }
+
     private void aplicar(Produto p, ProdutoRequest req) {
-        p.setSku(req.sku().trim());
         p.setNome(req.nome().trim());
         p.setDescricao(req.descricao());
         p.setPrecoUnitario(req.precoUnitario());

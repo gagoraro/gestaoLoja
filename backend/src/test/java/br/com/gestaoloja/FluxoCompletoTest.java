@@ -38,6 +38,18 @@ class FluxoCompletoTest {
         mvc.perform(get("/api/produtos?busca=camis")).andExpect(jsonPath("$.length()").value(1));
         mvc.perform(get("/api/produtos?busca=xyz")).andExpect(jsonPath("$.length()").value(0));
 
+        // SKU automático quando não informado
+        JsonNode semSku = enviar("/api/produtos", "{\"nome\":\"Sem código\",\"precoUnitario\":2}", 201);
+        assertThat(semSku.get("sku").asText()).isEqualTo(String.format("P%05d", semSku.get("id").asLong()));
+        JsonNode semSku2 = enviar("/api/produtos", "{\"sku\":\"  \",\"nome\":\"Outro\",\"precoUnitario\":2}", 201);
+        assertThat(semSku2.get("sku").asText()).startsWith("P0");
+        // editar com SKU vazio mantém o código
+        mvc.perform(put("/api/produtos/" + semSku.get("id").asLong()).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"nome\":\"Sem código 2\",\"precoUnitario\":3}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.sku").value(semSku.get("sku").asText()));
+        mvc.perform(delete("/api/produtos/" + semSku.get("id").asLong()));
+        mvc.perform(delete("/api/produtos/" + semSku2.get("id").asLong()));
+
         // SKU duplicado
         enviar("/api/produtos", "{\"sku\":\"cam-01\",\"nome\":\"X\",\"precoUnitario\":1}", 422);
 

@@ -24,7 +24,7 @@ export default function ProdutoForm({ produto, onSalvar, onCancelar }: Props) {
     setSalvando(true);
     try {
       await onSalvar({
-        sku, nome, descricao: descricao || undefined, precoUnitario: precoNum,
+        sku: sku.trim() || undefined, nome, descricao: descricao || undefined, precoUnitario: precoNum,
         estoqueInicial: produto ? undefined : Number(estoqueInicial) || 0,
       });
     } catch (e) {
@@ -36,7 +36,10 @@ export default function ProdutoForm({ produto, onSalvar, onCancelar }: Props) {
 
   return (
     <form onSubmit={submit} className="form">
-      <label>SKU / Código<input value={sku} onChange={(e) => setSku(e.target.value)} required maxLength={50} /></label>
+      <label>Código (SKU) — opcional
+        <input value={sku} onChange={(e) => setSku(e.target.value)} maxLength={50}
+          placeholder={produto ? 'Deixe em branco para manter o atual' : 'Deixe em branco para gerar automaticamente'} />
+      </label>
       <label>Nome<input value={nome} onChange={(e) => setNome(e.target.value)} required maxLength={150} /></label>
       <label>Descrição<textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} maxLength={1000} rows={2} /></label>
       <div className="linha">

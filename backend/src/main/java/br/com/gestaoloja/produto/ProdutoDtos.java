@@ -9,7 +9,8 @@ public final class ProdutoDtos {
     private ProdutoDtos() {}
 
     public record ProdutoRequest(
-            @NotBlank(message = "SKU é obrigatório") @Size(max = 50) String sku,
+            /* opcional: se vier vazio, o sistema gera um código (P00001, P00002…) */
+            @Size(max = 50) String sku,
             @NotBlank(message = "Nome é obrigatório") @Size(max = 150) String nome,
             @Size(max = 1000) String descricao,
             @NotNull(message = "Preço é obrigatório") @DecimalMin(value = "0.00", message = "Preço não pode ser negativo")

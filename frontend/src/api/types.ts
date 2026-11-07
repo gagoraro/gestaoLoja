@@ -10,7 +10,7 @@ export interface Produto {
 }
 
 export interface ProdutoInput {
-  sku: string;
+  sku?: string;
   nome: string;
   descricao?: string;
   precoUnitario: number;
